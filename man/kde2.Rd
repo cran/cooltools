@@ -2,7 +2,7 @@
 % Please edit documentation in R/kde2.R
 \name{kde2}
 \alias{kde2}
-\title{2D kernel density estimation}
+\title{2D adaptive kernel density estimation}
 \usage{
 kde2(
   x,
@@ -15,6 +15,7 @@ kde2(
   sd.min = NULL,
   sd.max = NULL,
   reflect = "",
+  smoothw = FALSE,
   cpp = TRUE
 )
 }
@@ -39,7 +40,9 @@ kde2(
 
 \item{reflect}{vector of characters c('left','right','bottom','top') specifying the edges, where the data should be reflected}
 
-\item{cpp}{logical flag; if set to TRUE (default) a fast implementation in C++ is used.}
+\item{smoothw}{logical flag; if set TRUE, the smoothing depends on the weighted mass rather than the counts in each pixel.}
+
+\item{cpp}{logical flag; if set to TRUE (default), a fast implementation in C++ is used.}
 }
 \value{
 Returns a list of items
