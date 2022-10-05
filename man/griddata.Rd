@@ -2,42 +2,55 @@
 % Please edit documentation in R/griddata.R
 \name{griddata}
 \alias{griddata}
-\title{Grid 1D point set}
+\title{Distribute a point set onto a regular grid}
 \usage{
-griddata(x, w = NULL, n = 20, xlim = NULL)
+griddata(x, w = NULL, n = 10, min = NULL, max = NULL, density = FALSE)
 }
 \arguments{
-\item{x}{N-element vector of points}
+\item{x}{N-element vector (if D=1) or N-by-D matrix (if D>1), giving the Cartesian coordinates of N points in D dimensions.}
 
-\item{w}{optional N-element vector with weights}
+\item{w}{optional N-element vector with weights.}
 
-\item{n}{scalar specifying the number of equally space grid cells}
+\item{n}{scalar or D-element vector specifying the number of equally space grid cells along each dimension.}
 
-\item{xlim}{2-element vector specifying the data range (data cropped if necessary). If not given, xlim is set to the full range of x.}
+\item{min}{scalar or D-element vector specifying the lower bound of the grid. If not given, min is adjusted to the range of x.}
+
+\item{max}{scalar or D-element vector specifying the upper bound of the grid. If not given, max is adjusted to the range of x.}
+
+\item{density}{logical. If TRUE, the output arrays \code{counts} and \code{mass} are rescaled, such that the total number of points is \code{sum(counts) dV} and the total mass is \code{sum(mass) dV}, where \code{dV} is the volume of the D-dimensional grid cells.}
 }
 \value{
 Returns a list of items
-\item{x}{n-element vector of cell-center x-coordinates}
-\item{xbreak}{(n+1)-element vector of cell-edge x-coordinates}
-\item{dx}{spacing between x-coordinates}
-\item{xlim}{range of xbreak, same as input argument xlim, if given}
-\item{n}{n-element vector giving the number of points in each grid cell}
-\item{m}{n-element vector of weighted point counts (masses); only available if \code{w} is specified.}
-\item{d}{normalized number densities corresponding to n, such that sum(d)*dx=1.}
-\item{c}{normalized mass densities corresponding to m, such that sum(c)*dx=1; only available if \code{w} is specified.}
+\item{counts}{D-dimensional array representing the number of points in each grid cell}
+\item{mass}{D-dimensional array representing the mass (=sum of weights) of points in each grid cell. Only exists, if argument w is provided.}
+\item{grid}{List of D elements with the grid properties along each dimension. n: number of grid cells; mid: n-vector of mid-cell coordinates; breaks: (n+1)-vector of cell edges; lim: 2-vector of considered range; delta: cell width.}
 }
 \description{
-Generates a regular 1D grid from a 1D point set, optionally with weights; similar to hist.
+Distributes a set of points in D dimensions onto a regular, D-dimensional grid, using a fast nearest neighbor algorithm. Weights can be used optionally.
 }
 \examples{
-set.seed(1)
-x = runif(2000)
-g = griddata(x,xlim=c(0,1))
-plot(g$x,g$n,xlim=c(0,1),ylim=c(0,max(g$n)),pch=20,type='l')
 
-}
-\seealso{
-\code{\link{griddata2}}
+# Distribute 1-dimensional data onto a regular grid
+npoints = 1e4
+x = rnorm(npoints)
+g = griddata(x,min=-3,max=3,n=100,density=TRUE)
+curve(dnorm(x),-3,3)
+points(g$grid$mid,g$counts/npoints,pch=16)
+
+# Distribute 2-dimensional data onto a regular grid
+x = runif(100,max=2)
+y = runif(100)
+g = griddata(cbind(x,y),min=c(0,0),max=c(2,1),n=c(20,10))
+image(g$grid[[1]]$breaks,g$grid[[2]]$breaks,g$counts,
+      asp=1,col=grey.colors(100,0,1),xlab='x',ylab='y')
+points(x,y,col='red',pch=16)
+
+# ... same with weights
+w = runif(100)
+g = griddata(cbind(x,y),w,min=c(0,0),max=c(2,1),n=c(20,10))
+image(g$grid[[1]]$breaks,g$grid[[2]]$breaks,g$mass,asp=1,col=grey.colors(100,0,1),xlab='x',ylab='y')
+points(x,y,col='red',pch=16,cex=w)
+
 }
 \author{
 Danail Obreschkow

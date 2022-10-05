@@ -86,10 +86,6 @@ sphereplot = function(f, n = 100, theta0 = pi/2, phi0 = 0, angle = 0, projection
   #   with the spherical coordinates columns theta,phi
   # + boundary(nv) a function generating the boundary of the projection in xy with nv points
 
-  # safe use of par()
-  oldpar = par(no.readonly = TRUE)
-  on.exit(par(oldpar))
-
   # initialize projection
   if (projection=='globe') {
 
@@ -117,13 +113,13 @@ sphereplot = function(f, n = 100, theta0 = pi/2, phi0 = 0, angle = 0, projection
 
   } else if (projection=='cylindrical') {
 
-    xlim = c(0,2*pi)
-    ylim = c(0,pi)
+    xlim = c(-pi,pi)
+    ylim = c(-pi/2,pi/2)
     sph2xy = function(p) {
-      return(data.frame(x=p$phi, y=pi-p$theta))
+      return(data.frame(x=p$phi%%(2*pi)-pi, y=pi/2-p$theta%%pi))
     }
     xy2sph = function(p) {
-      return(data.frame(theta=pi-p$y, phi=p$x))
+      return(data.frame(theta=pi/2-p$y, phi=p$x+pi))
     }
     boundary = function(nv) {
       a = midseq(0,2*pi,nv)
@@ -186,51 +182,55 @@ sphereplot = function(f, n = 100, theta0 = pi/2, phi0 = 0, angle = 0, projection
   if (!add) nplot(center[1]+radius*xlim,center[2]+radius*ylim,asp=1)
 
   # plot projection
-  if (is.function(f)) {
 
-    # make xy-coordinates of plot
-    wx = diff(xlim)
-    wy = diff(ylim)
-    nx = round(n*sqrt(wx/wy))
-    ny = round(n*sqrt(wy/wx))
-    p = expand.grid(x=midseq(xlim[1],xlim[2],nx), y=midseq(ylim[1],ylim[2],ny))
+  if (!is.null(f)) {
 
-    # compute inverse projection
-    p = xy2sph(p)
+    if (is.function(f)) {
 
-    # rotate spherical coordinates
-    p = rotate(p)
+      # make xy-coordinates of plot
+      wx = diff(xlim)
+      wy = diff(ylim)
+      nx = round(n*sqrt(wx/wy))
+      ny = round(n*sqrt(wy/wx))
+      p = expand.grid(x=midseq(xlim[1],xlim[2],nx), y=midseq(ylim[1],ylim[2],ny))
 
-    # evaluate function
-    p$f = f(p$theta,p$phi,...)
+      # compute inverse projection
+      p = xy2sph(p)
 
-    # determine color range
-    if (is.null(clim)) clim = range(p$f)
-    if (clim[2]==clim[1]) clim=clim+c(-1,1)
+      # rotate spherical coordinates
+      p = rotate(p)
 
-    # make color array
-    ncol = length(col)
-    p$img = col[pmax(1,pmin(ncol,round(0.5+ncol*(p$f-clim[1])/(clim[2]-clim[1]))))]
-    p$img[p$out] = background
+      # evaluate function
+      p$f = f(p$theta,p$phi,...)
 
-    # plot raster
-    rasterImage(rasterflip(array(p$img,c(nx,ny))), interpolate = T,
-                  center[1]+radius*xlim[1], center[2]+radius*ylim[1], center[1]+radius*xlim[2], center[2]+radius*ylim[2])
+      # determine color range
+      if (is.null(clim)) clim = range(p$f)
+      if (clim[2]==clim[1]) clim=clim+c(-1,1)
 
-  } else if (is.array(f) && dim(f)[2]==2) {
+      # make color array
+      ncol = length(col)
+      p$img = col[pmax(1,pmin(ncol,round(0.5+ncol*(p$f-clim[1])/(clim[2]-clim[1]))))]
+      p$img[p$out] = background
 
-    p = data.frame(theta=f[,1], phi=f[,2])
-    p = rotate(p)
-    p = sph2xy(p)
-    p = t(t(p)*radius+center)
-    points(p, pch=pch, cex=pt.cex, col=pt.col)
+      # plot raster
+      rasterImage(rasterflip(array(p$img,c(nx,ny))), interpolate = T,
+                    center[1]+radius*xlim[1], center[2]+radius*ylim[1], center[1]+radius*xlim[2], center[2]+radius*ylim[2])
 
-    need.frame = FALSE
+    } else if (is.array(f) && dim(f)[2]==2) {
 
-  } else {
+      p = data.frame(theta=f[,1], phi=f[,2])
+      p = rotate(p)
+      p = sph2xy(p)
+      p = t(t(p)*radius+center)
+      points(p, pch=pch, cex=pt.cex, col=pt.col)
 
-    stop('unknown type of f')
+      need.frame = FALSE
 
+    } else {
+
+      stop('unknown type of f')
+
+    }
   }
 
   # grid lines
@@ -272,7 +272,6 @@ sphereplot = function(f, n = 100, theta0 = pi/2, phi0 = 0, angle = 0, projection
 
   # overplot frame to truncated pixels outside projection
   bd = t(t(boundary(nv))*radius+center)
-  par(xpd=TRUE)
 
   if (need.frame) {
     d = sqrt(diff(xlim)*diff(ylim))*radius*0.01
@@ -287,6 +286,6 @@ sphereplot = function(f, n = 100, theta0 = pi/2, phi0 = 0, angle = 0, projection
   if (show.border) lines(rbind(bd,bd[1,]),col=line.col,lwd=lwd)
 
   # return values
-  return(list(col=col, clim=clim))
+  invisible(list(col=col, clim=clim))
 
 }
