@@ -6,7 +6,7 @@
 #'
 #' @param x n-vector of x-coordinates; must be strictly monotonically increasing, but not necessarily equally spaced
 #' @param y m-vector of y-coordinates; must be strictly monotonically increasing, but not necessarily equally spaced
-#' @param z n-by-m matrix of dimension containing the known function values at the (x,y)-coordinates
+#' @param z n-by-m matrix containing the known function values at the (x,y)-coordinates
 #' @param outside value of the approximation function outside the grid (default is NA)
 #'
 #' @return Returns a fast and vectorized interpolation function f(x,y)
@@ -57,7 +57,7 @@ approxfun2 = function(x,y,z,outside=NA) {
     x1 = (x-xmin)+i*interval
     x2 = (x-xmin)+j*interval
     out = (1-w)*fun(x1)+w*fun(x2)
-    out[is.infinite(out)] = outside
+    out[!is.finite(out)] = outside
     return(out)
   }
 

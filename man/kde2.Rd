@@ -2,57 +2,100 @@
 % Please edit documentation in R/kde2.R
 \name{kde2}
 \alias{kde2}
-\title{2D adaptive kernel density estimation}
+\title{Multi-dimensional adaptive kernel density estimation}
 \usage{
 kde2(
   x,
-  y,
   w = NULL,
-  s = 1,
-  n = c(20, 20),
-  xlim = range(x),
-  ylim = range(y),
-  sd.min = NULL,
-  sd.max = NULL,
+  nx = 300,
+  xlim = NULL,
+  ylim = NULL,
+  smoothing = 1,
+  sigma = NULL,
+  sigma.min = 0,
+  sigma.max = Inf,
   reflect = "",
-  smoothw = FALSE
+  algorithm = "kdenn",
+  probability = FALSE
 )
 }
 \arguments{
-\item{x}{N-element vector of x-coordinates or N-by-2 matrix of (x,y)-coordinates}
-
-\item{y}{N-element vector of y-coordinates (only used if x is a vector)}
+\item{x}{N-by-D vector of x-coordinates or N-by-2 matrix of (x,y)-coordinates}
 
 \item{w}{optional N-element vector with weights}
 
-\item{s}{characteristic smoothing length}
-
-\item{n}{scalar or 2-element vector specifying the number of equally space grid cells}
+\item{nx}{integer specifying the number of equally space grid cells along the x-axis; the number ny of pixels along the y-axis is determined automatically from xlim and ylim.}
 
 \item{xlim}{2-element vector specifying the x-range}
 
-\item{ylim}{2-element vector specifying the y-range}
+\item{ylim}{2-element vector specifying the y-range; if needed, this range is slightly adjusted to allow for an integer number of pixels.}
 
-\item{sd.min}{optional value, specifying the minimum blurring of any pixel, expressed in standard deviations in units of pixels}
+\item{smoothing}{positive linear smoothing factor; the larger, the smoother the density field}
 
-\item{sd.max}{optional value, specifying the maximum blurring of any pixel, expressed in standard deviations in units of pixels}
+\item{sigma}{optional N-vector, specifying the blurring of each pixel individually in length units of x; only used if algorithm=4.}
 
-\item{reflect}{vector of characters c('left','right','bottom','top') specifying the edges, where the data should be reflected}
+\item{sigma.min}{optional value, specifying the minimum blurring of any pixel, expressed in standard deviations in length units of x}
 
-\item{smoothw}{logical flag; if set TRUE, the smoothing depends on the weighted mass rather than the counts in each pixel.}
+\item{sigma.max}{optional value, specifying the maximum blurring of any pixel, expressed in standard deviations in length units of x}
+
+\item{reflect}{vector of strings c('left','right','bottom','top') specifying the edges, where the data should be reflected to avoid probability density leaking outside the window}
+
+\item{algorithm}{integer value or character string specifying the smoothing altorithm:\cr
+\code{basic (0):} basic nearest-neighbor gridding algorithm without smoothing
+\code{blur (1):} simple Gaussian blur of gridded density field
+\code{kdefast (2):} 2D smoothing method that ignores higher dimensional information and applies a smoothing size to each pixel that depends on the number of objects in each pixel
+\code{kdennnn  (3):} sophisticated Kernel density estimator that uses D-dimensional nearest neighbor separations to smooth each data point individually
+\code{manual (4):} smooths each data point individually using a Gaussian Kernel with point-dependent standard deviations given in the optional vector \code{sigma}\cr\cr}
+
+\item{probability}{logical flag. If TRUE, the output field is normalized such that sum(field)dpixel^2=1. If FALSE (default), the field is such that sum(field)dpixel^2 equals the effective number of particles (or effective mass, if weights are given) in the range specified by xlim and ylim, including particle fractions that have been smoothed into the field and excluding particle fractions that have been smoothed out of it.}
 }
 \value{
 Returns a list of items
-\item{x}{n-element vector of cell-center x-coordinates.}
-\item{y}{n-element vector of cell-center y-coordinates.}
-\item{xbreak}{(n+1)-element vector of cell-edge x-coordinates.}
-\item{ybreak}{(n+1)-element vector of cell-edge y-coordinates.}
-\item{n}{2D array of point counts.}
-\item{m}{2D array of weighted point counts (masses); only available if \code{w} is specified.}
-\item{d}{2D array of smoothed density field.}
+\item{field}{2D array of smoothed density field.}
+\item{x}{nx-element vector of cell-center x-coordinates.}
+\item{y}{ny-element vector of cell-center y-coordinates.}
+\item{xbreak}{(nx+1)-element vector of cell-edge x-coordinates.}
+\item{ybreak}{(ny+1)-element vector of cell-edge y-coordinates.}
+\item{dpixel}{grid spacing along x-coordinate and y-coordinate.}
+\item{algorithm}{name of algorithm in use.}
 }
 \description{
-Produces a 2D kernel density estimation on a 2D grid from a 2D point set, using adaptive smoothing and allowing for the data points to have weights.
+Produces a 2D kernel density estimation on a 2D grid from a D-dimensional (D>=2) point set
+}
+\examples{
+# make a mock sample of n d-dimensional points from
+# three different components (1D line, 2D square, d-D normal distr)
+d = 3 # number of dimensions of mock point set; try to choose different values 2, 3, 4, ...
+n = 1e4 # number of particles per component
+set.seed(1)
+x = rbind(cbind(array(rep(runif(n,-1,1),2),c(n,2)),array(0,c(n,d-2))),
+          cbind(array(runif(2*n),c(n,2)),array(0,c(n,d-2))),
+          array(rnorm(d*n),c(n,d)))
+
+# grid total projected probability density
+npixels = 500 # number of pixels along a grid side
+q = midseq(-3,3,npixels)
+f1 = outer(dnorm(q),dnorm(q),'*')/3+outer(dunif(q),dunif(q),'*')/3
+q = seq(round(npixels/3),round(npixels*2/3))
+f1[q+npixels*(q-1)] = f1[q+npixels*(q-1)]+(npixels/6)^2/length(q)/3
+
+# recover 2D projected pdf from 3D point sample using different methods
+f2 = kde2(x, n=npixels, xlim=c(-3,3), ylim=c(-3,3), algorithm='basic', probability=TRUE)$field
+f3 = kde2(x, n=npixels, xlim=c(-3,3), ylim=c(-3,3), algorithm='kdefast', probability=TRUE)$field
+f4 = kde2(x, n=npixels, xlim=c(-3,3), ylim=c(-3,3), algorithm='kdenn', probability=TRUE)$field
+
+# plot the 2D fields
+img = function(f,x,y,title) {
+  graphics::rasterImage(rasterflip(lim(f)^0.3),x,y,x+0.99,y+0.99)
+  graphics::text(x+0.05,y+0.9,title,col='orange',pos=4)
+}
+graphics::par(mar=rep(0.1,4))
+nplot(c(0,2),c(0,2),asp=1)
+img(f1,0,1,'Input pdf')
+img(f2,1,1,'Random sample ("basic")')
+img(f3,0,0,'Recovered pdf ("kdefast")')
+img(f4,1,0,'Recovered pdf ("kdenn")')
+
 }
 \seealso{
 \code{\link{griddata}}

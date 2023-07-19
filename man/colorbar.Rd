@@ -10,7 +10,6 @@ colorbar(
   xright,
   ytop,
   col = gray.colors(256, 0, 1),
-  n = length(col),
   clim = c(0, 1),
   show.border = TRUE,
   text = "",
@@ -20,6 +19,9 @@ colorbar(
   lwd = 1,
   nticks = 5,
   at = NULL,
+  srt = 0,
+  ticklength = 0.1,
+  shift = 0,
   ...
 )
 }
@@ -33,8 +35,6 @@ colorbar(
 \item{ytop}{top y-coordinate of the bar}
 
 \item{col}{vector of colors}
-
-\item{n}{number of polygons used to draw the bar}
 
 \item{clim}{2-vector specifying the range of values, linearly represented by the full color scale}
 
@@ -54,7 +54,13 @@ colorbar(
 
 \item{at}{vector of values specifying the tick positions on the axis, this overrides nticks.}
 
-\item{...}{optional arguments to be passed to the function \code{\link{axis}}}
+\item{srt}{rotation angle of tick text}
+
+\item{ticklength}{length of ticks}
+
+\item{shift}{extra distance between axis numbers and color bar}
+
+\item{...}{optional arguments to be passed text function.}
 }
 \value{
 None
