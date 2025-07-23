@@ -71,7 +71,7 @@
 #'
 #' @export
 
-sphereplot = function(f, n = 100, theta0 = pi/2, phi0 = 0, angle = 0, projection='globe',
+sphereplot = function(f = NULL, n = 100, theta0 = pi/2, phi0 = 0, angle = 0, projection='globe',
                       col = gray.colors(256,0,1), clim=NULL,
                       add = FALSE, center = c(0,0), radius = 1, nv = 500,
                       show.border = TRUE,

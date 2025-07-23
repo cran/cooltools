@@ -5,7 +5,7 @@
 \title{Plot a spherical function or point set}
 \usage{
 sphereplot(
-  f,
+  f = NULL,
   n = 100,
   theta0 = pi/2,
   phi0 = 0,
